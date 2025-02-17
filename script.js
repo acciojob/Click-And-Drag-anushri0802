@@ -5,46 +5,53 @@ document.addEventListener('DOMContentLoaded', () => {
     let startX = 0;
     let scrollLeft = 0;
 
+    // Handling scrolling within the items container
     items.addEventListener('mousedown', (event) => {
-        if (!event.target.classList.contains('item')) return;
-
         isDragging = true;
         startX = event.pageX - items.offsetLeft;
         scrollLeft = items.scrollLeft;
-        event.target.style.cursor = 'grabbing';
+        items.classList.add('active');
     });
 
     items.addEventListener('mouseleave', () => {
         isDragging = false;
+        items.classList.remove('active');
     });
 
     items.addEventListener('mouseup', () => {
         isDragging = false;
+        items.classList.remove('active');
     });
 
     items.addEventListener('mousemove', (event) => {
         if (!isDragging) return;
-
         event.preventDefault();
         const x = event.pageX - items.offsetLeft;
-        const walk = (x - startX) * 3; // Adjust scroll speed as needed
+        const walk = (x - startX) * 1.5; // Adjust scroll speed as needed
         items.scrollLeft = scrollLeft - walk;
     });
 
+    // Handling drag and drop for individual cubes
     cubes.forEach(cube => {
         cube.addEventListener('mousedown', (event) => {
-            cube.style.position = 'absolute';
-            cube.style.zIndex = 1000;
-            let shiftX = event.clientX - cube.getBoundingClientRect().left;
-            let shiftY = event.clientY - cube.getBoundingClientRect().top;
-
-            document.body.append(cube);
-
-            moveAt(event.pageX, event.pageY);
+            event.stopPropagation();
+            const shiftX = event.clientX - cube.getBoundingClientRect().left;
+            const shiftY = event.clientY - cube.getBoundingClientRect().top;
 
             function moveAt(pageX, pageY) {
                 cube.style.left = pageX - shiftX + 'px';
                 cube.style.top = pageY - shiftY + 'px';
+            }
+
+            function onMouseMove(event) {
+                moveAt(event.pageX, event.pageY);
+            }
+
+            document.addEventListener('mousemove', onMouseMove);
+
+            document.addEventListener('mouseup', () => {
+                document.removeEventListener('mousemove', onMouseMove);
+                cube.onmouseup = null;
 
                 // Boundary constraints
                 const itemsRect = items.getBoundingClientRect();
@@ -62,18 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (cubeRect.bottom > itemsRect.bottom) {
                     cube.style.top = itemsRect.bottom - cubeRect.height + 'px';
                 }
-            }
-
-            function onMouseMove(event) {
-                moveAt(event.pageX, event.pageY);
-            }
-
-            document.addEventListener('mousemove', onMouseMove);
-
-            cube.onmouseup = function() {
-                document.removeEventListener('mousemove', onMouseMove);
-                cube.onmouseup = null;
-            };
+            }, { once: true });
         });
+
+        cube.ondragstart = () => {
+            return false;
+        };
     });
 });
